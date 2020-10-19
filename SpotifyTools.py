@@ -1,107 +1,127 @@
-import spotipy
-import spotipy.util as util
-from spotipy.oauth2 import SpotifyClientCredentials
 import string
+from collections import Counter
+from os import getenv
+
+import spotipy.util as util
+from spotipy import Spotify
+from spotipy.exceptions import SpotifyException
+from spotipy.oauth2 import SpotifyClientCredentials
+
+CLIENT_ID = getenv("SPOTIFY_CLIENT_ID")
+CLIENT_SECRET = getenv("SPOTIFY_CLIENT_SECRET")
+
+credentials_manager = SpotifyClientCredentials(
+    client_id=CLIENT_ID,
+    client_secret=CLIENT_SECRET
+)
+
+spotify = Spotify(
+    client_credentials_manager=credentials_manager
+)
 
 
-def process_meta(s):
-    return s.translate(str.maketrans('', '', ' ' + string.punctuation)).lower()
+def get_top_artists(tracks: dict) -> (list, int):
+    count = Counter()
+
+    while tracks is not None:
+        count.update(
+            artist["name"].strip() 
+            for track in tracks["items"]
+            for artist in track["track"]["artists"]
+        )
+
+        tracks = spotify.next(tracks)
+
+    top_count = max(count.values())
+
+    top_artists = [
+        name
+        for name, count in count.items()
+        if count == top_count
+    ]
+
+    return top_artists, top_count
 
 
-def find_print_top_artist(p):
-    tracks = p['tracks']
-
-    all_artists = {}
-    while True:
-        for track in tracks['items']:
-            artists = [artist['name'].strip() for artist in track['track']['artists']]
-
-            for artist in artists:
-                key = artist.lower()
-
-                if key in all_artists:
-                    all_artists[key]['count'] += 1
-                else:
-                    all_artists[key] = {'name': artist, 'count': 1}
-
-        if tracks['next']:
-            tracks = sp.next(tracks)
-        else:
-            break
-
-    top_artist = {'name': '', 'count': 0}
-    multiple = False
-    for _, v in all_artists.items():
-        if v['count'] == top_artist['count']:
-            multiple = True
-            top_artist['name'] += f', {v["name"]}'
-        elif v['count'] > top_artist['count']:
-            multiple = False
-            top_artist = v
-
-    if multiple:
-        print(f'\tTop artists are "{top_artist["name"]}" with {top_artist["count"]} track(s) each')
-    else:
-        print(f'\tTop artist is "{top_artist["name"]}" with {top_artist["count"]} track(s)')
-
-
-def find_print_playlist_duplicates(p):
-    tracks = p['tracks']
-
+def get_duplicates(tracks: dict) -> list:
     duplicate_meta = {}
     all_meta_processed = []
-    while True:
-        for track in tracks['items']:
-            name = track['track']['name']
-            artists = ', '.join(artist['name'] for artist in track['track']['artists'])
-            album = track['track']['album']['name']
-            meta_processed = process_meta(name + artists + album)
+
+    while tracks is not None:
+        for track in tracks["items"]:
+            name = track["track"]["name"]
+            artists = ", ".join(artist["name"].strip() for artist in track["track"]["artists"])
+            album = track["track"]["album"]["name"]
+
+            meta_processed = "".join(
+                c.lower()
+                for c in (name + artists + album)
+                if c.isalnum()
+            )
 
             if meta_processed in all_meta_processed:
                 if meta_processed in duplicate_meta:
-                    duplicate_meta[meta_processed]['count'] += 1
+                    duplicate_meta[meta_processed]["count"] += 1
                 else:
-                    duplicate_meta[meta_processed] = {'name': name, 'artists': artists, 'album': album, 'count': 2}
+                    duplicate_meta[meta_processed] = {"name": name, "artists": artists, "album": album, "count": 2}
 
             all_meta_processed.append(meta_processed)
 
-        if tracks['next']:
-            tracks = sp.next(tracks)
-        else:
-            break
+        tracks = spotify.next(tracks)
 
-    if not duplicate_meta:
-        print(f'\tNo duplicates!')
+    return list(duplicate_meta.values())
+
+
+def print_results(playlist_name, top_artists, top_count, duplicates):
+    print(f"\t{playlist_name}")
+
+    print(f"\t\tTop artist(s): \"", end="")
+    print(*top_artists, sep=", ", end="")
+    print(f"\", track count: {top_count}")
+    
+    if not duplicates:
+        print(f"\t\tNo duplicate tracks")
     else:
-        print(f'\t{len(duplicate_meta)} track(s) with duplicates...')
+        print(f"\t\t{len(duplicates)} track(s) with duplicates")
 
-        for _, meta in duplicate_meta.items():
-            print(f'\t"{meta["name"]}" by "{meta["artists"]}" on "{meta["album"]}"')
-            print(f'\t\t{meta["count"]} occurrences')
+        for duplicate in duplicates:
+            print("\t\t\t\"{name}\" by "
+                    "\"{artists}\" on "
+                    "\"{album}\" repeats "
+                    "{count} times".format(**duplicate))
 
 
-client_credentials_manager = SpotifyClientCredentials()
+def analyse(username: str):
+    try:
+        playlists = spotify.user_playlists(username)
+    except SpotifyException:
+        playlists = None
+    
+    while playlists is not None:
+        for playlist in playlists["items"]:
+            if playlist["owner"]["id"] != username:
+                continue
+            
+            tracks = spotify.playlist_tracks(playlist["id"])
 
-scope = 'playlist-read'
-# token = util.prompt_for_user_token('06mehmej', scope)
+            top_artists, top_count = get_top_artists(tracks)
 
-username = '06mehmej'
+            duplicates = get_duplicates(tracks)
 
-sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
-# sp = spotipy.Spotify(auth=token)
+            print_results(playlist["name"], top_artists, top_count, duplicates)
 
-playlists = sp.user_playlists(username)
+        playlists = spotify.next(playlists)
 
-analyse_playlists_containing = None
 
-for playlist in playlists['items']:
-    if analyse_playlists_containing:
-        if not any(name in playlist['name'] for name in analyse_playlists_containing):
-            continue
+def main():
+    username = input("Spotify username: ").strip()
 
-    use_playlist = sp.user_playlist(username, playlist['id'])
+    analyse(username)
 
-    print(use_playlist['name'])
 
-    find_print_top_artist(use_playlist)
-    find_print_playlist_duplicates(use_playlist)
+if __name__ == "__main__":
+    while True:
+        try:
+            main()
+        except KeyboardInterrupt:
+            break
