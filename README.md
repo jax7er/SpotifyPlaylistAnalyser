@@ -1,1 +1,1 @@
-# SpotifyTools
+# SpotifyPlaylistAnalyser
