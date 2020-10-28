@@ -1,33 +1,49 @@
+:root {
+    /* colours from https://developer.spotify.com/branding-guidelines/ */
+    --green: #1DB954;
+    --black: #191414;
+    --white: #FFFFFF;
+}
+
 * {
     margin-left: auto; 
     margin-right: auto;
 
-    background: rgb(16, 16, 16);
-    color: rgb(250, 250, 250);
+    background: var(--black);
+    color: var(--white);
 
     font-family: Verdana, Geneva, Tahoma, sans-serif;
     text-align: center; 
 }
 
+h1 {
+    color: var(--green);
+}
+
 button {    
     font-size: large;
 
-    color: rgb(16, 16, 16);
-    background: rgb(250, 250, 250);
-
-    border-color: rgb(250, 250, 250);
-
+    background: var(--black);
+    color: var(--green);
+    
+    border-color: var(--black);
     border-width: 1px;
     border-radius: 5px;
 }
 
 button:hover {
-    background: rgb(16, 16, 16);
-    color: rgb(250, 250, 250);
+    background: var(--green);
+    color: var(--black);
+
+    border-color: var(--green);
 }
 
 input {
     padding: 5px;
+    
+    border-color: var(--green);
+    border-width: 1px;
+    border-radius: 5px;
 }
 
 table {
@@ -37,8 +53,8 @@ table {
 th {
     padding: 5px;
 
-    color: rgb(16, 16, 16);
-    background: rgb(250, 250, 250);
+    color: var(--black);
+    background: var(--white);
 }
 
 td {    
