@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <title>Spotify Playlist Analyser</title>
+{% endblock %}
+
+{% block body %}
+    <h3>Top artist(s)</h3>
+
+    <form action="/playlists/{{ username }}" method="GET">
+        <button type="submit">Choose playlists</button>
+    </form>
+
+    <table>
+        <tr>
+            <th>Playlist</th>
+            <th>Top artist(s)</th>
+            <th>Track count</th>
+        </tr>        
+
+        {% for name_artists_count in data %}
+            <tr>
+                <td>{{ name_artists_count[0] }}</td>
+                <td>{{ name_artists_count[1] }}</td>
+                <td style="text-align: center">{{ name_artists_count[2] }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+{% endblock %}

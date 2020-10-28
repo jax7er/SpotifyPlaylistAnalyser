@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <title>Spotify Playlist Analyser</title>
+{% endblock %}
+
+{% block body %}
+    <h3>Choose username</h3>
+
+    <form action="/" method="POST">
+        <label for="username">Username: </label>
+        <input type="text" id="username" name="username" value="spotify"/>
+        <button type="submit">Get playlists</button>
+    </form>
+{% endblock %}
