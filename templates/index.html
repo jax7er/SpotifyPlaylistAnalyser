@@ -5,11 +5,29 @@
 {% endblock %}
 
 {% block body %}
-    <h3>Choose username</h3>
+    <h1>Choose username</h1>
 
-    <form action="/" method="POST">
-        <label for="username">Username: </label>
-        <input type="text" id="username" name="username" value="spotify"/>
+    <form action="{{ url_for('index') }}" method="POST">
+        <label for="user">Username: </label>
+        {% if username %}
+            <input type="text" id="user" name="username" value="{{ username }}"/>
+        {% else %}
+            <input type="text" id="user" name="username" value="spotify"/>
+        {% endif %}
+
+        <br>
+        <br>
+
+        <label for="max">Maximum playlists: </label>
+        {% if max_playlists %}
+            <input type="number" name="max_playlists" id="max" min="1" value="{{ max_playlists }}">
+        {% else %}
+            <input type="number" name="max_playlists" id="max" min="1" value="10">
+        {% endif %}
+
+        <br>
+        <br>
+
         <button type="submit">Get playlists</button>
     </form>
 {% endblock %}
