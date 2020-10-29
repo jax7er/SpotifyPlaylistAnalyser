@@ -18,11 +18,11 @@
             </thead>     
 
             <tbody>
-                {% for playlist, artists, count in top_artists %}
+                {% for item in top_artists %}
                     <tr>
-                        <td>{{ playlist }}</td>
-                        <td>{{ ", ".join(artists) }}</td>
-                        <td>{{ count }}</td>
+                        <td>{{ item["playlist"] }}</td>
+                        <td>{{ ", ".join(item["artists"]) }}</td>
+                        <td>{{ item["count"] }}</td>
                     </tr>
                 {% endfor %}
             </tbody>

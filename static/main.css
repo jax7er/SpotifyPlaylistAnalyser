@@ -6,6 +6,7 @@
 }
 
 * {
+    /* center all elements */
     margin-left: auto; 
     margin-right: auto;
 
@@ -47,6 +48,7 @@ input {
 }
 
 table {
+    /* single line between cells */
     border-collapse: collapse;
 }
 
