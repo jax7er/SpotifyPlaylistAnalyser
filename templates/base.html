@@ -5,17 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
 
-    <!-- favicon -->
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" >
+    <!-- favicon from https://favicon.io/emoji-favicons/snake -->
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     
-    <!-- apply stylesheet to all pages -->
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
     
+    {% block head %}
     <!-- pages that extend base.html insert their head block here -->
-    {% block head %}{% endblock %}
+    {% endblock %}
 </head>
 <body>
+    {% block body %}
     <!-- pages that extend base.html insert their body block here -->
-    {% block body %}{% endblock %}
+    {% endblock %}
 </body>
 </html>

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <title>Spotify Playlist Analyser</title>
+{% endblock %}
+
+{% block body %}
+    <br>
+
+    <!-- from https://icons8.com/preloaders/en/circular/snake/ -->
+    <img src="{{ url_for('static', filename='loading.gif') }}"></div>
+    
+    <br>
+    <br>
+    
+    {{ message }}
+
+    <!-- auto-redirect to the analysis page, .replace() means if the user clicks the back button we won't return to this page -->
+    <script>
+        window.location.replace("{{ redirect_url }}");
+    </script>
+{% endblock %}
+

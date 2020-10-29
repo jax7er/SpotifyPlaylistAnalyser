@@ -8,6 +8,8 @@
     {% if top_artists %}
         <h1>Top artists</h1>
 
+        <br>
+
         <table>
             <thead>
                 <tr>
@@ -27,12 +29,16 @@
                 {% endfor %}
             </tbody>
         </table>
-
-        <br>
+    {% else %}
+        <h1>No top artists!</h1>
     {% endif %}
+
+    <br>
 
     {% if duplicate_tracks %}
         <h1>Duplicate tracks</h1>
+
+        <br>
         
         {% for playlist, data in duplicate_tracks %}
             <h2>{{ playlist }}</h2>
@@ -48,8 +54,8 @@
                 {% for item in data %}
                     <tr>
                         <td>{{ item["name"] }}</td>
-                        <td>{{ ", ".join(item["artists"]) }}</td>
-                        <td>{{ ", ".join(item["albums"]) }}</td>
+                        <td>{{ item["artists"]|join(", ") }}</td>
+                        <td>{{ item["albums"]|join(", ") }}</td>
                         <td>{{ item["count"] }}</td>
                     </tr>
                 {% endfor %}
@@ -57,9 +63,16 @@
 
             <br>
         {% endfor %}
+    {% else %}
+        <h1>No duplicate tracks!</h1>
     {% endif %}
 
-    <form action="{{ url_for('playlists') }}" method="GET">
-        <button type="submit">Choose playlists</button>
+    <br>
+
+    <form action="{{ url_for('index') }}" method="GET">
+        <button type="submit" class="nav-left">Start over</button>
     </form>
+
+    <br>
+    <br>
 {% endblock %}

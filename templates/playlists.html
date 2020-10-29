@@ -7,37 +7,44 @@
 {% block body %}
     <h1>{{ username }}'s public playlists</h1>
 
-    <form action="{{ url_for('playlists') }}" method="POST">
-        <table>
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Include</th>
-                </tr>
-            </thead>
-            
-            <tbody>
-                {% for id, name in ids_names %}
+    <br>
+
+    <form action="{{ url_for('processing') }}" method="POST">
+        <!-- <fieldset> -->
+            <table>
+                <thead>
                     <tr>
-                        <td>
-                            <label for="{{ id }}">{{ name }}</label>
-                        </td>
-                        <td>
-                            <input checked type="checkbox" name="{{ id }}_{{ name }}" id="{{ id }}">
-                        </td>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Include</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                
+                <tbody>
+                    {% for id, name in ids_names %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <label for="{{ id }}">{{ name }}</label>
+                            </td>
+                            <td>
+                                <input checked type="checkbox" id="{{ id }}" name="{{ id }}" value="{{ name }}">
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        <!-- </fieldset> -->
 
         <br>
 
-        <button type="submit">Analyse</button>    
+        <button type="submit" class="nav-right">Analyse</button>
+    </form>
+    
+    <form action="{{ url_for('index') }}" method="GET">
+        <button type="submit" class="nav-left">Choose username</button>
     </form>
 
     <br>
-    
-    <form action="{{ url_for('index') }}" method="GET">
-        <button type="submit">Choose username</button>
-    </form>
+    <br>
 {% endblock %}

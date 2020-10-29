@@ -7,8 +7,7 @@
 
 * {
     /* center all elements */
-    margin-left: auto; 
-    margin-right: auto;
+    margin: auto;
 
     background: var(--black);
     color: var(--white);
@@ -18,7 +17,22 @@
 }
 
 h1 {
+    margin: 5px auto;
     color: var(--green);
+}
+
+h2 {
+    margin: 5px auto;
+}
+
+input {    
+    margin: 5px auto;
+    
+    padding: 5px;
+
+    border-color: var(--green);
+    border-width: 1px;
+    border-radius: 5px;
 }
 
 button {    
@@ -27,7 +41,7 @@ button {
     background: var(--black);
     color: var(--green);
     
-    border-color: var(--black);
+    border-color: var(--green);
     border-width: 1px;
     border-radius: 5px;
 }
@@ -39,12 +53,14 @@ button:hover {
     border-color: var(--green);
 }
 
-input {
-    padding: 5px;
-    
-    border-color: var(--green);
-    border-width: 1px;
-    border-radius: 5px;
+button.nav-left {
+    float: left;
+    margin-left: 20px;
+}
+
+button.nav-right {
+    float: right;
+    margin-right: 20px;
 }
 
 table {
@@ -60,10 +76,8 @@ th {
 }
 
 td {    
-    padding: 3px;
+    padding: 3px 10px;
 
     border-top-width: 1px;
     border-top-style: solid;
-    padding-left: 10px;
-    padding-right: 10px;
 }

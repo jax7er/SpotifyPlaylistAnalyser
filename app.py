@@ -1,32 +1,32 @@
-from itertools import islice
-
 from flask import Flask, redirect, render_template, request, session, url_for
 
-from SpotifyPlaylistAnalyser import (get_duplicates, get_playlist_ids_names,
-                                     get_top_artists, spotify)
+from SpotifyPlaylistAnalyser import AnalyseThread, LoadThread
 
 app = Flask(__name__)
 
 # required for the session signed cookie
 app.secret_key = b"\xf6\xa7\xc09p\x86\xb6\x87\x9a\x95o\x08K/C\xef"
 
+load_thread: LoadThread = None
+analyse_thread: AnalyseThread = None
 
-def handle_method(**methods_functions):
+
+def handle_request(**methods_functions):
     """
-    helper function for checking the HTTP method and returning an error message when it is not recognised
+    helper function for handling the HTTP method and returning an error message when it is not recognised
 
     methods_functions: Dict[http_method: str, function: Callable]
     """
 
-    function = methods_functions.get(request.method.lower())
+    function = methods_functions.get(request.method)
 
-    if function:
-        return function()
-    else:
-        return f"Unhandled method: {request.method}, please go back"
+    return function() if function else (
+        f"Unhandled HTTP method: {request.method}, "
+        f"must be one of: {', '.join(methods_functions)}"
+    )
 
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/")
 def index():
     """
     Home page
@@ -38,21 +38,42 @@ def index():
         max_playlists = session.get("max_playlists")
 
         return render_template(
-            "index.html", 
+            "index.html",
             username=username, 
             max_playlists=max_playlists
         )
     
+    return handle_request(GET=get)
+
+
+@app.route("/loading", methods=["POST"])
+def loading():
     def post():
-        session["username"] = request.form["username"]
-        session["max_playlists"] = int(request.form["max_playlists"] or 10)
+        username = request.form.get("username")
 
-        return redirect(url_for("playlists"))
+        if username:
+            global load_thread
+
+            max_playlists = int(request.form.get("max_playlists", 10))
+            
+            session["username"] = username
+            session["max_playlists"] = max_playlists
+            
+            load_thread = LoadThread(username, max_playlists)
+            load_thread.start()
+
+            return render_template(
+                "async.html",
+                message="Loading...",
+                redirect_url=url_for("playlists")
+            )
+        else:
+            return redirect(url_for("index"))
     
-    return handle_method(get=get, post=post)
+    return handle_request(POST=post)
 
 
-@app.route("/playlists", methods=["GET", "POST"])
+@app.route("/playlists")
 def playlists():
     """
     Displays a user's public playlists
@@ -60,96 +81,74 @@ def playlists():
     """
 
     def get():
-        username = session.get("username")
+        global load_thread
 
-        if username:
-            # default max_playlists to 10 if not already in the session
-            session["max_playlists"] = session.get("max_playlists", 10)
+        if load_thread is not None:
+            username = session.get("username")
+            ids_names = load_thread.join()
 
-            max_playlists = session.get("max_playlists")
-            ids_names = list(islice(
-                get_playlist_ids_names(username), 
-                max_playlists
-            ))
+            load_thread = None
 
             return render_template(
-                "playlists.html", 
+                "playlists.html",
                 username=username,
-                max_playlists=max_playlists,
                 ids_names=ids_names
             )
         else:
             return redirect(url_for("index"))
+    
+    return handle_request(GET=get)
 
+
+@app.route("/processing", methods=["POST"])
+def processing():
     def post():
         # get all the checkbox names that are checked
-        analyse_id_names = [
-            id_name.split("_", 1)
-            for id_name, on in request.form.items()
-            if on == "on"
-        ]
+        analyse_id_names = list(request.form.items())
 
-        if analyse_id_names:
-            session["analyse_id_names"] = analyse_id_names
+        if analyse_id_names:            
+            global analyse_thread
+            
+            analyse_thread = AnalyseThread(analyse_id_names)
+            analyse_thread.start()
 
-            return redirect(url_for("analyse"))
+            return render_template(
+                "async.html",
+                message="Processing...",
+                redirect_url=url_for("analysis")
+            )
         else:
             return redirect(url_for("playlists"))
     
-    return handle_method(get=get, post=post)
+    return handle_request(POST=post)
 
 
-@app.route("/analyse", methods=["GET", "POST"])
-def analyse():
+@app.route("/analysis")
+def analysis():
     """
     Display the analysis
     Shows the user the results of all the analyses performed on the selected playlists, if there are no results the section is not shown
     """
 
     def get():
-        analyse_id_names = session.get("analyse_id_names")
+        global analyse_thread
 
-        if analyse_id_names:
-            top_artists = []
-            duplicate_tracks = []
+        if analyse_thread is not None:
+            top_artists, duplicate_tracks = analyse_thread.join()
 
-            for p_id, p_name in analyse_id_names:
-                tracks = spotify.playlist_tracks(p_id)
-
-                artists, count = get_top_artists(tracks)
-
-                duplicates = get_duplicates(tracks)
-
-                if artists:
-                    top_artists.append({
-                        "playlist": p_name, 
-                        "artists": artists, 
-                        "count": count
-                    })
-                
-                if duplicates:
-                    # descending order of track count
-                    duplicates.sort(key=lambda x: x["count"], reverse=True)
-
-                    duplicate_tracks.append((p_name, duplicates))
-
-            # descending order of track count
-            top_artists.sort(key=lambda x: x["count"], reverse=True)
-            duplicate_tracks.sort(key=lambda x: x[1][0]["count"], reverse=True)
+            analyse_thread = None
 
             return render_template(
-                "analyse.html", 
+                "analysis.html",
                 top_artists=top_artists,
                 duplicate_tracks=duplicate_tracks
             )
         else:
             return redirect(url_for("playlists"))
-    
-    def post():
-        return redirect(url_for("playlists"))
         
-    return handle_method(get=get, post=post)
+    return handle_request(GET=get)
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True) # local debug server
+    # app.run(host="0.0.0.0") # externally visible server
