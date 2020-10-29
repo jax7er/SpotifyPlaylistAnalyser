@@ -11,13 +11,19 @@ app = Flask(__name__)
 app.secret_key = b"\xf6\xa7\xc09p\x86\xb6\x87\x9a\x95o\x08K/C\xef"
 
 
-# helper functions for checking the HTTP method and returning an error message when it is not recognised
-def is_get():
-    return request.method.lower() == "get"
-def is_post():
-    return request.method.lower() == "post"
-def method_error():
-    return f"Unhandled method: {request.method}, please go back"
+def handle_method(**methods_functions):
+    """
+    helper function for checking the HTTP method and returning an error message when it is not recognised
+
+    methods_functions: Dict[http_method: str, function: Callable]
+    """
+
+    function = methods_functions.get(request.method.lower())
+
+    if function:
+        return function()
+    else:
+        return f"Unhandled method: {request.method}, please go back"
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -27,7 +33,7 @@ def index():
     Contains the form to enter the user's username and maximum number of playlists to analyse
     """
 
-    if is_get():
+    def get():
         username = session.get("username")
         max_playlists = session.get("max_playlists")
 
@@ -36,13 +42,14 @@ def index():
             username=username, 
             max_playlists=max_playlists
         )
-    elif is_post():
+    
+    def post():
         session["username"] = request.form["username"]
         session["max_playlists"] = int(request.form["max_playlists"] or 10)
 
         return redirect(url_for("playlists"))
-    else:
-        return method_error()
+    
+    return handle_method(get=get, post=post)
 
 
 @app.route("/playlists", methods=["GET", "POST"])
@@ -52,7 +59,7 @@ def playlists():
     Allows user to select which playlists to include in the analysis and buttons to continue to analysis or return to selecting the username
     """
 
-    if is_get():
+    def get():
         username = session.get("username")
 
         if username:
@@ -73,7 +80,8 @@ def playlists():
             )
         else:
             return redirect(url_for("index"))
-    elif is_post():
+
+    def post():
         # get all the checkbox names that are checked
         analyse_id_names = [
             id_name.split("_", 1)
@@ -87,8 +95,8 @@ def playlists():
             return redirect(url_for("analyse"))
         else:
             return redirect(url_for("playlists"))
-    else:
-        return method_error()
+    
+    return handle_method(get=get, post=post)
 
 
 @app.route("/analyse", methods=["GET", "POST"])
@@ -98,7 +106,7 @@ def analyse():
     Shows the user the results of all the analyses performed on the selected playlists, if there are no results the section is not shown
     """
 
-    if is_get():
+    def get():
         analyse_id_names = session.get("analyse_id_names")
 
         if analyse_id_names:
@@ -136,10 +144,11 @@ def analyse():
             )
         else:
             return redirect(url_for("playlists"))
-    elif is_post():
+    
+    def post():
         return redirect(url_for("playlists"))
-    else:
-        return method_error()
+        
+    return handle_method(get=get, post=post)
 
 
 if __name__ == '__main__':
