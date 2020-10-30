@@ -21,11 +21,10 @@ class LoadThread(Thread):
         super().__init__()
         self.username = username
         self.max_playlists = max_playlists
-        self.playlists = []
+        self.playlists: list = None
 
     def run(self):
-        self.playlists.clear()
-        self.playlists.extend(islice(
+        self.playlists = list(islice(
             self._get_playlists(self.username), 
             self.max_playlists
         ))
@@ -58,12 +57,12 @@ class AnalyseThread(Thread):
     def __init__(self, playlist_ids_names):
         super().__init__()
         self.playlist_ids_names = playlist_ids_names
-        self.top_artists = []
-        self.duplicate_tracks = []
+        self.top_artists: list = None
+        self.duplicate_tracks: list = None
 
     def run(self):
-        self.top_artists.clear()
-        self.duplicate_tracks.clear()
+        self.top_artists = []
+        self.duplicate_tracks = []
 
         for id_, name in self.playlist_ids_names:            
             artists, count = self._get_top_artists(id_)
@@ -126,15 +125,10 @@ class AnalyseThread(Thread):
 
         # + 1 because we want at least 2 more to print the short version
         if len(top_artists) > max_artists + 1:
-            return (
-                [
-                    *top_artists[:max_artists], 
-                    f"and {len(top_artists) - max_artists} others"
-                ],
-                top_count
-            )
-        else:
-            return top_artists, top_count
+            excess = f"and {len(top_artists) - max_artists} others"
+            top_artists = [*top_artists[:max_artists], excess]
+        
+        return top_artists, top_count
 
     def _get_duplicates(
         self,
