@@ -21,14 +21,14 @@
                 </thead>
                 
                 <tbody>
-                    {% for id, name in ids_names %}
+                    {% for item in playlists %}
                         <tr>
                             <td>{{ loop.index }}</td>
                             <td>
-                                <label for="{{ id }}">{{ name }}</label>
+                                <label for="{{ item['id'] }}">{{ item['name'] }}</label>
                             </td>
                             <td>
-                                <input checked type="checkbox" id="{{ id }}" name="{{ id }}" value="{{ name }}">
+                                <input checked type="checkbox" id="{{ item['id'] }}" name="{{ item['id'] }}" value="{{ item['name'] }}">
                             </td>
                         </tr>
                     {% endfor %}

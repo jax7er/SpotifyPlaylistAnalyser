@@ -64,7 +64,7 @@ def loading():
 
             return render_template(
                 "async.html",
-                message="Loading...",
+                message=f"Loading up to {max_playlists} playlists...",
                 redirect_url=url_for("playlists")
             )
         else:
@@ -85,14 +85,14 @@ def playlists():
 
         if load_thread is not None:
             username = session.get("username")
-            ids_names = load_thread.join()
+            playlists = load_thread.join()
 
             load_thread = None
 
             return render_template(
                 "playlists.html",
                 username=username,
-                ids_names=ids_names
+                playlists=playlists
             )
         else:
             return redirect(url_for("index"))
@@ -104,17 +104,17 @@ def playlists():
 def processing():
     def post():
         # get all the checkbox names that are checked
-        analyse_id_names = list(request.form.items())
+        analyse_ids_names = list(request.form.items())
 
-        if analyse_id_names:            
+        if analyse_ids_names:            
             global analyse_thread
             
-            analyse_thread = AnalyseThread(analyse_id_names)
+            analyse_thread = AnalyseThread(analyse_ids_names)
             analyse_thread.start()
 
             return render_template(
                 "async.html",
-                message="Processing...",
+                message=f"Processing {len(analyse_ids_names)} playlists...",
                 redirect_url=url_for("analysis")
             )
         else:

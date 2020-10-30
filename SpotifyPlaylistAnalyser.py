@@ -21,21 +21,23 @@ class LoadThread(Thread):
         super().__init__()
         self.username = username
         self.max_playlists = max_playlists
+        self.playlists = []
 
     def run(self):
-        self.ids_names = list(islice(
-            self._get_playlist_ids_names(self.username), 
+        self.playlists.clear()
+        self.playlists.extend(islice(
+            self._get_playlists(self.username), 
             self.max_playlists
         ))
 
     def join(self):
         super().join()
-        return self.ids_names
+        return self.playlists
 
-    def _get_playlist_ids_names(
+    def _get_playlists(
         self,
         username: str, 
-        check_owner: bool = False
+        check_owner: bool = True
     ) -> Iterable[Tuple[str]]:
         try:
             playlists = spotify.user_playlists(username)
@@ -47,30 +49,30 @@ class LoadThread(Thread):
                 if check_owner and playlist["owner"]["id"] != username:
                     continue
                 
-                yield playlist["id"], playlist["name"]
+                yield playlist
             
             playlists = spotify.next(playlists)
 
 
 class AnalyseThread(Thread):
-    def __init__(self, id_names):
+    def __init__(self, playlist_ids_names):
         super().__init__()
-        self.id_names = id_names
-
-    def run(self):
+        self.playlist_ids_names = playlist_ids_names
         self.top_artists = []
         self.duplicate_tracks = []
 
-        for p_id, p_name in self.id_names:
-            tracks = spotify.playlist_tracks(p_id)
+    def run(self):
+        self.top_artists.clear()
+        self.duplicate_tracks.clear()
 
-            artists, count = self._get_top_artists(tracks)
+        for id_, name in self.playlist_ids_names:            
+            artists, count = self._get_top_artists(id_)
 
-            duplicates = self._get_duplicates(tracks)
+            duplicates = self._get_duplicates(id_)
 
             if artists:
                 self.top_artists.append({
-                    "playlist": p_name, 
+                    "playlist": name, 
                     "artists": artists, 
                     "count": count
                 })
@@ -79,15 +81,15 @@ class AnalyseThread(Thread):
                 # descending order of track count
                 duplicates.sort(key=lambda x: x["count"], reverse=True)
 
-                self.duplicate_tracks.append((p_name, duplicates))
+                self.duplicate_tracks.append({
+                    "playlist": name, 
+                    "duplicates": duplicates
+                })
 
         # descending order of track count
-        self.top_artists.sort(
-            key=lambda x: x["count"], 
-            reverse=True
-        )
+        self.top_artists.sort(key=lambda x: x["count"], reverse=True)
         self.duplicate_tracks.sort(
-            key=lambda x: x[1][0]["count"], 
+            key=lambda x: x["duplicates"]["count"], 
             reverse=True
         )
 
@@ -95,7 +97,8 @@ class AnalyseThread(Thread):
         super().join()
         return self.top_artists, self.duplicate_tracks
 
-    def _get_top_artists(self, tracks: dict) -> (List[str], int):
+    def _get_top_artists(self, playlist_id: str) -> (List[str], int):
+        tracks = spotify.playlist_tracks(playlist_id)
         artist_count = Counter()
 
         while tracks is not None:
@@ -135,9 +138,10 @@ class AnalyseThread(Thread):
 
     def _get_duplicates(
         self,
-        tracks: dict,
+        playlist_id: str,
         include_album: bool = True
     ) -> List[dict]:
+        tracks = spotify.playlist_tracks(playlist_id)
         all_meta = {}
 
         while tracks is not None:
@@ -169,7 +173,7 @@ class AnalyseThread(Thread):
                         item["albums"].append(album)
                 else:
                     all_meta[meta_key] = {
-                        "name": name, 
+                        "track": name, 
                         "artists": artists,
                         "albums": [album],
                         "count": 1
@@ -204,10 +208,9 @@ if __name__ == "__main__":
         except Exception as e:
             print(e)
         else:
-            print("Top artists:")
+            print("\nTop artists:")
             print(*top_artists, sep="\n")
-            print("")
-            print("Duplicate tracks:") 
+            print("\nDuplicate tracks:") 
             print(*duplicate_tracks, sep="\n")   
 
 
