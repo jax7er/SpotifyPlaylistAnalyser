@@ -150,5 +150,5 @@ def analysis():
 
 
 if __name__ == '__main__':
-    app.run(debug=True) # local debug server
-    # app.run(host="0.0.0.0") # externally visible server
+    # app.run(debug=True) # local debug server
+    app.run(host="0.0.0.0") # externally visible server
