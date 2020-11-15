@@ -2,7 +2,7 @@ from collections import Counter
 from itertools import islice
 from os import getenv
 from threading import Thread
-from typing import Iterable, List, Tuple
+from typing import Iterable, List, Tuple, Dict, Any
 
 from spotipy import Spotify
 from spotipy.exceptions import SpotifyException
@@ -17,11 +17,11 @@ spotify = Spotify(
 
 
 class LoadThread(Thread):
-    def __init__(self, username, max_playlists):
+    def __init__(self, username: str, max_playlists: int):
         super().__init__()
         self.username = username
         self.max_playlists = max_playlists
-        self.playlists: list = None
+        self.playlists: List[Dict[str, Any]] = None
 
     def run(self):
         self.playlists = list(islice(
@@ -36,7 +36,7 @@ class LoadThread(Thread):
     def _get_playlists(
         self,
         username: str, 
-        check_owner: bool = True
+        check_owner = True
     ) -> Iterable[Tuple[str]]:
         try:
             playlists = spotify.user_playlists(username)
@@ -54,11 +54,11 @@ class LoadThread(Thread):
 
 
 class AnalyseThread(Thread):
-    def __init__(self, playlist_ids_names):
+    def __init__(self, playlist_ids_names: List[List[str, str]]):
         super().__init__()
         self.playlist_ids_names = playlist_ids_names
-        self.top_artists: list = None
-        self.duplicate_tracks: list = None
+        self.top_artists: List[Dict[str, Any]] = None
+        self.duplicate_tracks: List[Dict[str, Any]] = None
 
     def run(self):
         self.top_artists = []
@@ -88,7 +88,7 @@ class AnalyseThread(Thread):
         # descending order of track count
         self.top_artists.sort(key=lambda x: x["count"], reverse=True)
         self.duplicate_tracks.sort(
-            key=lambda x: x["duplicates"]["count"], 
+            key=lambda x: x["duplicates"][0]["count"], 
             reverse=True
         )
 
@@ -115,17 +115,17 @@ class AnalyseThread(Thread):
 
         top_count = max(artist_count.values())
 
-        top_artists = list(sorted(
-            name
-            for name, count in artist_count.items()
-            if count == top_count
+        top_artists = list(filter(
+            lambda x: artist_count[x] == top_count,
+            artist_count
         ))
+        top_artists.sort(key=str.lower)
 
         max_artists = 10
 
         # + 1 because we want at least 2 more to print the short version
         if len(top_artists) > max_artists + 1:
-            excess = f"and {len(top_artists) - max_artists} others"
+            excess = f"{len(top_artists) - max_artists} others"
             top_artists = [*top_artists[:max_artists], excess]
         
         return top_artists, top_count
@@ -133,34 +133,30 @@ class AnalyseThread(Thread):
     def _get_duplicates(
         self,
         playlist_id: str,
-        include_album: bool = True
-    ) -> List[dict]:
+        include_album = False
+    ) -> List[Dict[str, Any]]:
         tracks = spotify.playlist_tracks(playlist_id)
         all_meta = {}
 
         while tracks is not None:
-            for track in tracks["items"]:
-                if track["track"] is None:
+            for track_item in tracks["items"]:
+                if track_item["track"] is None:
                     continue
 
-                name = track["track"]["name"]
-                album = track["track"]["album"]["name"]
-                artists_gen = (
-                    artist["name"].strip()
-                    for artist in track["track"]["artists"]
-                )
-                artists = list(sorted(artists_gen, key=str.lower))
+                track = track_item["track"]
+                name = track["name"].strip()
+                artists = [a["name"].strip() for a in track["artists"]]
+                artists.sort(key=str.lower)
+                album = track["album"]["name"].strip()
 
-                meta_key = "".join(
-                    c.lower()
-                    for c
-                    in name + "".join(artists) + (album if include_album else "")
-                    if c.isalnum()
-                )
+                meta_key = "".join([
+                    name,
+                    *artists,
+                    album if include_album else ""
+                ])
+                item = all_meta.get(meta_key)
 
-                if meta_key in all_meta:
-                    item = all_meta[meta_key]
-
+                if item:
                     item["count"] += 1
 
                     if album.lower() not in map(str.lower, item["albums"]):
@@ -175,11 +171,7 @@ class AnalyseThread(Thread):
 
             tracks = spotify.next(tracks)
 
-        return [
-            x
-            for x in all_meta.values()
-            if x["count"] > 1
-        ]
+        return [x for x in all_meta.values() if x["count"] > 1]
 
 
 if __name__ == "__main__":

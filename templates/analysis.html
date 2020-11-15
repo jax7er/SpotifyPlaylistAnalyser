@@ -23,7 +23,7 @@
                 {% for item in top_artists %}
                     <tr>
                         <td>{{ item["playlist"] }}</td>
-                        <td>{{ ", ".join(item["artists"]) }}</td>
+                        <td>{{ item["artists"]|join(",<br>"|safe) }}</td>
                         <td>{{ item["count"] }}</td>
                     </tr>
                 {% endfor %}
@@ -57,8 +57,8 @@
                     {% for duplicate in item["duplicates"] %}
                         <tr>
                             <td>{{ duplicate["track"] }}</td>
-                            <td>{{ duplicate["artists"]|join(", ") }}</td>
-                            <td>{{ duplicate["albums"]|join(", ") }}</td>
+                            <td>{{ duplicate["artists"]|join(",<br>"|safe) }}</td>
+                            <td>{{ duplicate["albums"]|join(",<br>"|safe) }}</td>
                             <td>{{ duplicate["count"] }}</td>
                         </tr>
                     {% endfor %}

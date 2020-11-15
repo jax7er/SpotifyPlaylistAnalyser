@@ -10,6 +10,8 @@ app.secret_key = b"\xf6\xa7\xc09p\x86\xb6\x87\x9a\x95o\x08K/C\xef"
 load_thread: LoadThread = None
 analyse_thread: AnalyseThread = None
 
+DEBUG = True
+
 
 def handle_request(**methods_functions):
     """
@@ -17,12 +19,12 @@ def handle_request(**methods_functions):
 
     methods_functions: Dict[http_method: str, function: Callable]
     """
-
+    
     function = methods_functions.get(request.method)
 
     return function() if function else (
         f"Unhandled HTTP method: {request.method}, "
-        f"must be one of: {', '.join(methods_functions)}"
+        f"valid methods: {', '.join(methods_functions)}"
     )
 
 
@@ -150,5 +152,7 @@ def analysis():
 
 
 if __name__ == '__main__':
-    # app.run(debug=True) # local debug server
-    app.run(host="0.0.0.0") # externally visible server
+    if DEBUG:
+        app.run(debug=True) # local debug server
+    else:
+        app.run(host="0.0.0.0") # externally visible server
